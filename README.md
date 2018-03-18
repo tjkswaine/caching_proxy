@@ -1,7 +1,7 @@
 # caching_proxy
 
 ## Execution of exercise notes
-Starting with no familiarity with Go or with Redis. 
+Starting with no familiarity with Go or with Redis or with Docker beyond cultural significance and the abstractions they are rumored to empower. 
 
 Considering Haskell as an alternative I have familiarity with.
 
@@ -27,4 +27,9 @@ Strategy notes:
 does not contain a value for the specified key, it fetches the value from the backing
 Redis instance, using the Redis GET command, and stores it in the local cache,
 associated with the specified key." This means there is no consistency concern and the rest of the side-effect free API is irrelevant. Plan can proceed.
-* Caching nil (revised) use LIST for local Cache type. One or two ENTRIES per LIST. Second entry is value. 
+* Caching nil (revised) use LIST for local Cache type. One or two ENTRIES per LIST. Second entry is value.
+* Maxmemory and allkeys-lru won't work. At (up to) half a gig per string it is very unlikely that we will run into memory pressure when the cache size is specified by number of keys. That said, we will have to allow "stupid" usage, where a number of locally cached keys is specified and the cache doesn't have enough memory. What to do in this case? Since this is a local cache, we don't want to run up against an amount of memory that will interfere with our other operations. Docker will put bounds on the memory resources of our local Redis, so I would suppose that we have two choices: 
+  * Let local Redis run out of memory or 
+  * evict when memory is insufficient. 
+  Even if we rebuilt the caching native to the language we use, this choice about memory pressure remains. Since we don't want the proxy to fail because the cache was overloaded, I am inclined to choose the more stable eviction strategy. This will violate the terms of the spec in the "stupid" edge case, but we can communincate that in the deliverable. I think this should involve an optional set of params for the percentage of the the container memory that will be the threshold for eviciton (80% default?) and the amount of container space for the process (very little).
+
